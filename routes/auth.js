@@ -38,5 +38,49 @@ router.post('/registro', async (req, res) => {
   }
 });
 
-//No se olviden de exportar
+// Login de usuario
+router.post('/login', (req, res) => {
+  const { nombre_usuario, contraseña } = req.body;
+
+  // Validación básica
+  if (!nombre_usuario || !contraseña) {
+    return res.status(400).send('Faltan datos obligatorios');
+  }
+
+  // Buscar usuario en la base de datos
+  db.query(
+    'SELECT * FROM usuarios WHERE nombre_usuario = ?',
+    [nombre_usuario],
+    async (err, results) => {
+      if (err) {
+        console.error('Error en la consulta:', err);
+        return res.status(500).send('Error interno');
+      }
+
+      if (results.length === 0) {
+        return res.status(401).send('Usuario no encontrado');
+      }
+
+      const usuario = results[0];
+
+      // Comparar contraseñas
+      const match = await bcrypt.compare(contraseña, usuario.contraseña);
+
+      if (!match) {
+        return res.status(401).send('Contraseña incorrecta');
+      }
+
+      res.status(200).json({
+        mensaje: 'Login exitoso',
+        usuario: {
+          id: usuario.id,
+          nombre_usuario: usuario.nombre_usuario,
+          correo: usuario.correo,
+        },
+      });
+    }
+  );
+});
+
+
 module.exports = router;
